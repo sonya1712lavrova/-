@@ -1,0 +1,12 @@
+{
+  "name": "pvz-demo-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Demo backend: one warehouse with multiple pickup points (PVZ)",
+  "license": "MIT",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js"
+  }
+}
+

@@ -1,0 +1,124 @@
+/* Design tokens extracted from Figma */
+:root {
+  /* Colors */
+  --color-bg: #F5F3F1;                 /* App background */
+  --color-surface: #FFFFFF;            /* Cards, panels */
+  --color-text: #191817;               /* Primary text */
+  --color-text-secondary: #3D3C3A;     /* Secondary text */
+  --color-text-tertiary: #8C8A87;      /* Tertiary text */
+  --color-accent: #FFE033;             /* Accent (CTA, toggles ON) */
+  --color-danger: #FF3411;             /* Destructive */
+  --color-border: rgba(49, 34, 12, 0.16); /* Dividers/borders */
+  --color-divider-subtle: rgba(49, 34, 12, 0.08);
+  --focus-ring: rgba(255, 224, 51, 0.65);
+  --hover-surface: #f9f9fb;
+  /* Alias to match UI Kit naming */
+  --Basic-Background-bg-secondary: #F5F3F1;
+  --Basic-Background-bg-primary: #FFFFFF;
+  --Basic-Content-text-primary: #191817;
+  --Basic-Content-text-secondary-solid: #8C8A87;
+  /* Navigation Search */
+  --Nav-Search-bg: #EBEAE9;
+  --Nav-Search-placeholder: #8C8A87;
+
+  /* Basic / Border & Divider */
+  --basic-border-divider-border-primary: rgba(49, 34, 12, 0.16);
+  
+  /* Interactions / Border & Divider */
+  --interactions-border-divider-border-primary-hover: rgba(33, 26, 15, 0.28);
+  --interactions-border-divider-border-primary-active: #3D3C3A;
+  
+  /* Interactions / Background */
+  --Interactions-Background-bg-primary-hover: rgba(80, 52, 11, 0.04);
+
+  /* Controls */
+  --Basic-Control-control-black: #3D3C3A;
+  --Basic-Content-text-invert-primary: #FFFFFF;
+  --Interactions-Control-control-black-hover: #2A2927;
+  --Basic-Control-control-secondary: rgba(68, 45, 13, 0.08);
+  --Interactions-Control-control-secondary-hover: rgba(59, 40, 12, 0.12);
+
+  /* Core Borders */
+  --Core-Border-border-default: rgba(0, 0, 0, 0.10);
+  /* Spacing scale */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-pill: 100px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.3);
+
+  /* Typography base */
+  --font-size-2xl: 32px;
+  --font-size-xl: 28px;
+  --font-size-lg: 20px;
+  --font-size-md: 16px;
+  --font-size-sm: 14px;
+  --font-size-xs: 12px;
+  --line-height-tight: 1.2;
+  --line-height-normal: 1.4;
+  --line-height-relaxed: 1.6;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Typography tokens from Figma */
+  /* Headline 3/28 Tight・Bold */
+  --typo-h3-size: 28px;
+  --typo-h3-lh: 1.0714285714;
+  --typo-h3-tracking: -0.015em;
+  --typo-h3-weight: 700;
+  /* Headline 5/20 Normal・Bold */
+  --typo-h5-size: 20px;
+  --typo-h5-lh: 1.15;
+  --typo-h5-tracking: -0.01em;
+  --typo-h5-weight: 700;
+  /* Lead Text/16 Normal (Reg/Bold share tracking) */
+  --typo-lead-size: 16px;
+  --typo-lead-lh: 1.1875;
+  --typo-lead-tracking: -0.0025em;
+  --typo-lead-weight-reg: 400;
+  --typo-lead-weight-bold: 700;
+  /* Text Desk/14 Normal・Med */
+  --typo-text14-normal-size: 14px;
+  --typo-text14-normal-lh: 1.2857142857;
+  --typo-text14-normal-weight: 500;
+  /* Text Desk/14 Loose (Reg) */
+  --typo-text14-loose-lh: 1.4285714286;
+  --typo-text14-loose-weight: 400;
+  /* Text/13 Loose・Reg */
+  --typo-text13-loose-size: 13px;
+  --typo-text13-loose-lh: 1.3846153846;
+  --typo-text13-loose-weight: 400;
+  /* Small Text 1 Desk/12 Tight・Reg */
+  --typo-text12-tight-size: 12px;
+  --typo-text12-tight-lh: 1.1666666667;
+  --typo-text12-tight-weight: 400;
+
+  /* Badge palette */
+  --badge-blue-bg: #E3F2FD;
+  --badge-blue-fg: #1976D2;
+  --badge-purple-bg: #F3E5F5;
+  --badge-purple-fg: #7B1FA2;
+  --badge-orange-bg: #FFF3E0;
+  --badge-orange-fg: #E65100;
+  --badge-green-bg: #E8F5E9;
+  --badge-green-fg: #2E7D32;
+}
+
+

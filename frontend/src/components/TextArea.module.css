@@ -1,0 +1,106 @@
+.root {
+  display: flex;
+  width: 680px;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* Base container */
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100px;
+  padding: 10px 10px 8px 10px;
+  border-radius: 12px;
+  background: var(--Basic-Background-bg-secondary, #F5F3F1);
+  transition: background 0.2s, box-shadow 0.2s, border 0.2s, padding 0.2s;
+  width: 100%;
+  max-width: 100%;
+}
+
+.container:hover {
+  background: var(--Interactions-Background-bg-secondary-hover, rgba(80, 52, 11, 0.06));
+}
+
+/* Active (focus) */
+.active {
+  border: 2px solid var(--basic-border-divider-border-primary, rgba(49, 34, 12, 0.16));
+  background: var(--Basic-Background-bg-primary, #FFF);
+  box-shadow: 0 0 0 2px var(--Basic-System-tab-active, #3D3C3A);
+  padding: 4px 10px 8px 10px;
+}
+
+/* Filled (value present) */
+.filled {
+  padding: 4px 10px 8px 10px;
+  background: var(--Basic-Background-bg-secondary, #F5F3F1);
+}
+
+.filled:hover {
+  background: var(--Interactions-Background-bg-secondary-hover, rgba(80, 52, 11, 0.06));
+}
+
+.error {
+  border: 2px solid var(--basic-border-divider-border-primary, rgba(49, 34, 12, 0.16));
+  background: var(--Basic-Background-bg-primary, #FFF);
+  box-shadow: 0 0 0 2px var(--Basic-Content-text-warning, #F76916);
+  padding: 4px 10px 8px 10px;
+}
+
+/* Content wrapper */
+.content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 0;
+  padding: 1px 0;
+  gap: 2px;
+}
+
+/* Placeholder label */
+.placeholder {
+  color: var(--Basic-Content-text-secondary-solid, #8C8A87);
+  font-family: "YS Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.placeholderSmall {
+  font-size: 11px;
+  line-height: 12px;
+}
+
+/* Textarea element */
+.area {
+  flex: 1 0 0;
+  resize: vertical;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--Basic-Content-text-primary, #191817);
+  font-family: "YS Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 18px;
+  padding: 0;
+}
+
+.caption {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 8px;
+  color: var(--Basic-Content-text-warning, #F76916);
+  font-variant-numeric: lining-nums proportional-nums;
+  font-family: "YS Text";
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 14px;
+}
+
+
