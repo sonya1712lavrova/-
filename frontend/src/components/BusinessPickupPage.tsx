@@ -20,6 +20,7 @@ interface BusinessPickupPageProps {
   warehouses: Array<{ id: string; name: string; address: string }>;
 }
 
+
 interface BusinessPickupPoint {
   id: string;
   name: string;
@@ -97,6 +98,7 @@ export const BusinessPickupPage: React.FC<BusinessPickupPageProps> = ({ onBack, 
   const [deleteMany, setDeleteMany] = useState<boolean>(false);
   const [pendingUpdate, setPendingUpdate] = useState<any | null>(null);
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
+  const [editingLinks, setEditingLinks] = useState<any[]>([]);
 
   const loadData = async () => {
     try {
@@ -161,7 +163,21 @@ export const BusinessPickupPage: React.FC<BusinessPickupPageProps> = ({ onBack, 
 
   const handleRowClick = (point: BusinessPickupPoint) => {
     setEditingPoint(point);
-    setShowForm(true);
+    // Prefer fresh links from backend to гарантированно отрисовать подключения
+    getWarehouseBusinessLinks()
+      .then((all) => {
+        const filtered = Array.isArray(all)
+          ? all.filter((l: any) => l.businessPickupPointId === point.id)
+          : [];
+        setEditingLinks(filtered);
+        setShowForm(true);
+      })
+      .catch(() => {
+        // fallback to already загруженные links из страницы
+        const filtered = links.filter((l) => l.businessPickupPointId === point.id);
+        setEditingLinks(filtered as any);
+        setShowForm(true);
+      });
   };
 
   const handleDelete = async (point: BusinessPickupPoint) => {
@@ -225,6 +241,7 @@ export const BusinessPickupPage: React.FC<BusinessPickupPageProps> = ({ onBack, 
           onClose={() => setShowForm(false)}
           onSave={handleSave}
           onConfirmSave={(data) => setPendingUpdate(data)}
+          initialLinks={editingLinks}
         />
         <Modal
           open={!!pendingUpdate}

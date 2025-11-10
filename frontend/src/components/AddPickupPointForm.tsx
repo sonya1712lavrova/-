@@ -28,6 +28,13 @@ interface AddPickupPointFormProps {
   onClose: () => void;
   onSave: (data: any) => void;
   onConfirmSave?: (data: any) => void;
+  initialLinks?: Array<{
+    warehouseId: string;
+    enabled?: boolean;
+    delivery_time?: number;
+    delivery_cost_mgt?: number;
+    delivery_cost_kgt?: number;
+  }>;
 }
 
 const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -38,6 +45,7 @@ export const AddPickupPointForm: React.FC<AddPickupPointFormProps> = ({
   onClose,
   onSave,
   onConfirmSave,
+  initialLinks,
 }) => {
   const isEditMode = !!editingPoint;
   const contentRef = useRef<HTMLFormElement | null>(null);
@@ -85,17 +93,111 @@ export const AddPickupPointForm: React.FC<AddPickupPointFormProps> = ({
   const [maxLength, setMaxLength] = useState(editingPoint?.max_length?.toString() || '');
   const [storagePeriod, setStoragePeriod] = useState(editingPoint?.storage_period?.toString() || '');
   
-  const [warehouseConnections, setWarehouseConnections] = useState<WarehouseConnection[]>(
-    warehouses.map((w) => ({
-      warehouseId: w.id,
-      warehouseName: w.name,
-      warehouseAddress: w.address,
-      enabled: false,
-      delivery_time: '',
-      delivery_cost_mgt: '',
-      delivery_cost_kgt: '',
-    }))
-  );
+  const [warehouseConnections, setWarehouseConnections] = useState<WarehouseConnection[]>(() => {
+    const byWarehouse = new Map<string, any>();
+    (initialLinks || []).forEach((l) => byWarehouse.set(l.warehouseId, l));
+    return warehouses.map((w) => {
+      const link = byWarehouse.get(w.id);
+      return {
+        warehouseId: w.id,
+        warehouseName: w.name,
+        warehouseAddress: w.address,
+        enabled: link ? link.enabled !== false : false,
+        delivery_time: link && link.delivery_time != null ? String(link.delivery_time) : '',
+        delivery_cost_mgt: link && link.delivery_cost_mgt != null ? String(link.delivery_cost_mgt) : '',
+        delivery_cost_kgt: link && link.delivery_cost_kgt != null ? String(link.delivery_cost_kgt) : '',
+      };
+    });
+  });
+
+  // Re-sync connections each time initialLinks or warehouses change (ensures UI reflects latest links)
+  useEffect(() => {
+    if (!isEditMode) return;
+    const byWarehouse = new Map<string, any>();
+    (initialLinks || []).forEach((l) => byWarehouse.set(l.warehouseId, l));
+    setWarehouseConnections((prev) =>
+      warehouses.map((w) => {
+        const link = byWarehouse.get(w.id);
+        const prevConn = prev.find((c) => c.warehouseId === w.id);
+        return {
+          warehouseId: w.id,
+          warehouseName: w.name,
+          warehouseAddress: w.address,
+          enabled: link ? link.enabled !== false : (prevConn?.enabled ?? false),
+          delivery_time:
+            link && link.delivery_time != null
+              ? String(link.delivery_time)
+              : (prevConn?.delivery_time ?? ''),
+          delivery_cost_mgt:
+            link && link.delivery_cost_mgt != null
+              ? String(link.delivery_cost_mgt)
+              : (prevConn?.delivery_cost_mgt ?? ''),
+          delivery_cost_kgt:
+            link && link.delivery_cost_kgt != null
+              ? String(link.delivery_cost_kgt)
+              : (prevConn?.delivery_cost_kgt ?? ''),
+        };
+      })
+    );
+  }, [isEditMode, initialLinks, warehouses]);
+
+  // Hydrate connections in edit mode from parent-provided links (preferred)
+  useEffect(() => {
+    if (!isEditMode || !editingPoint?.id || !initialLinks || initialLinks.length === 0) return;
+    const byWarehouse = new Map<string, any>();
+    initialLinks.forEach((l) => byWarehouse.set(l.warehouseId, l));
+    setWarehouseConnections((prev) =>
+      prev.map((conn) => {
+        const link = byWarehouse.get(conn.warehouseId);
+        if (!link) return conn;
+        return {
+          ...conn,
+          enabled: link.enabled !== false,
+          delivery_time: link.delivery_time != null ? String(link.delivery_time) : '',
+          delivery_cost_mgt: link.delivery_cost_mgt != null ? String(link.delivery_cost_mgt) : '',
+          delivery_cost_kgt: link.delivery_cost_kgt != null ? String(link.delivery_cost_kgt) : '',
+        };
+      })
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, editingPoint?.id, initialLinks && initialLinks.length]);
+
+  // Fallback: fetch links if parent didn't pass
+  useEffect(() => {
+    if (!isEditMode || !editingPoint?.id || warehouses.length === 0) return;
+    if (initialLinks && initialLinks.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const links = await getWarehouseBusinessLinks();
+        if (!Array.isArray(links)) return;
+        const byWarehouse = new Map<string, any>();
+        links
+          .filter((l: any) => l.businessPickupPointId === editingPoint.id)
+          .forEach((l: any) => byWarehouse.set(l.warehouseId, l));
+        if (cancelled) return;
+        setWarehouseConnections((prev) =>
+          prev.map((conn) => {
+            const link = byWarehouse.get(conn.warehouseId);
+            if (!link) return conn;
+            return {
+              ...conn,
+              enabled: link.enabled !== false,
+              delivery_time: link.delivery_time != null ? String(link.delivery_time) : '',
+              delivery_cost_mgt: link.delivery_cost_mgt != null ? String(link.delivery_cost_mgt) : '',
+              delivery_cost_kgt: link.delivery_cost_kgt != null ? String(link.delivery_cost_kgt) : '',
+            };
+          })
+        );
+      } catch {
+        // ignore hydration errors; keep defaults
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, editingPoint?.id, warehouses.length]);
   
   // Fetch suggestions from map service (Nominatim) with debounce
   useEffect(() => {

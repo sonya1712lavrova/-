@@ -52,9 +52,9 @@ export async function getWarehouseBusinessLinks() {
 
 export async function getWarehouses(): Promise<Warehouse[]> {
   try {
-    const response = await fetch(`${API_BASE}/warehouses`);
-    if (!response.ok) throw new Error('Failed to fetch warehouses');
-    return response.json();
+  const response = await fetch(`${API_BASE}/warehouses`);
+  if (!response.ok) throw new Error('Failed to fetch warehouses');
+  return response.json();
   } catch (error) {
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new Error('Не удалось подключиться к серверу. Убедитесь, что сервер запущен на порту 3001.');
@@ -71,9 +71,9 @@ export async function getWarehouse(): Promise<Warehouse> {
 
 export async function getPickupPoints(): Promise<PickupPoint[]> {
   try {
-    const response = await fetch(`${API_BASE}/pickup-points`);
-    if (!response.ok) throw new Error('Failed to fetch pickup points');
-    return response.json();
+  const response = await fetch(`${API_BASE}/pickup-points`);
+  if (!response.ok) throw new Error('Failed to fetch pickup points');
+  return response.json();
   } catch (error) {
     if (error instanceof TypeError && error.message.includes('fetch')) {
       throw new Error('Не удалось подключиться к серверу. Убедитесь, что сервер запущен на порту 3001.');
