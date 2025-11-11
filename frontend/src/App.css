@@ -1645,17 +1645,17 @@ body {
 
 /* ===== Business map view ===== */
 .bpp-map-wrapper {
-  display: flex;
+  position: relative;
   width: 100%;
   flex: 1 1 auto;
   min-height: 0;
-  gap: 16px;
 }
 .bpp-map-list {
+  position: absolute;
+  top: 20px;
+  left: 20px;
   width: 400px;
-  min-width: 400px;
-  max-width: 400px;
-  height: 100%;
+  max-height: calc(100% - 40px);
   overflow: auto;
   background: var(--Basic-Background-bg-primary, #FFF);
   border-radius: 16px;
@@ -1665,8 +1665,8 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 20px;
-  flex: 1 0 0;
-  align-self: stretch;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 .bpp-map-list__title {
   align-self: stretch;
@@ -1677,12 +1677,12 @@ body {
   line-height: 23px;
 }
 .bpp-map-item {
-  padding: 0;
+  padding: 8px;
   border-radius: 10px;
   cursor: pointer;
   align-self: stretch;
 }
-.bpp-map-item:hover { background: transparent; }
+.bpp-map-item:hover { background: rgba(80, 52, 11, 0.04); }
 .bpp-map-item.active { background: rgba(80, 52, 11, 0.08); }
 .bpp-map-item__line { display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bpp-map-item__line .name { color: var(--Basic-Content-text-primary); font-family: 'YS Text'; font-size: 14px; font-weight: 700; line-height: 18px; }
@@ -1690,8 +1690,10 @@ body {
 .bpp-map-item__caption { margin-top: 4px; color: var(--Basic-Content-text-secondary-solid, #8C8A87); font-family: 'YS Text'; font-size: 14px; font-weight: 400; line-height: 18px; }
 .bpp-map-divider { height: 1px; background: var(--basic-border-divider-border-primary, rgba(49, 34, 12, 0.16)); align-self: stretch; }
 .bpp-map-canvas {
-  position: relative;
-  flex: 1 1 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   height: 100%;
   border-radius: 16px;
   overflow: hidden;
@@ -1888,17 +1890,18 @@ body {
   flex-direction: column;
   align-items: flex-start;
   flex: 0 0 auto;
+  width: 100%;
 }
 .bui-search__field {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
   height: 40px;
   padding: 10px 12px;
   border-radius: 12px;
   background: var(--Basic-Background-bg-secondary, #F5F3F1);
   border: 1px solid transparent;
-  width: 400px;
 }
 .bui-search__icon-search {
   color: var(--Core-Icon-icon-secondary, #9C9995);

@@ -1,13 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import ReactDOM from 'react-dom';
 import { geocodeAddress, getCachedCoords, primeGeocodes } from '../utils/geocode';
+import { BuiSearchField } from './BuiSearchField';
 
 type Point = {
   id: string;
   name: string;
   address: string;
 };
-
-// no global declarations needed for Leaflet-only mode
 
 interface BusinessPickupMapProps {
   points: Point[];
@@ -16,14 +16,13 @@ interface BusinessPickupMapProps {
 }
 
 export const BusinessPickupMap: React.FC<BusinessPickupMapProps> = ({ points, getConnectedCount, highlightedIds = [] }) => {
-  const mapRef = useRef<HTMLDivElement | null>(null);
-  const mapInstance = useRef<any>(null);
-  const markersRef = useRef<Map<string, any>>(new Map());
-  const coordsRef = useRef<Map<string, [number, number]>>(new Map());
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   const [search, setSearch] = useState('');
-  const [isMapReady, setIsMapReady] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [YMapComponents, setYMapComponents] = useState<any>(null);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([37.618423, 55.751244]);
 
   const visiblePoints = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -34,171 +33,147 @@ export const BusinessPickupMap: React.FC<BusinessPickupMapProps> = ({ points, ge
     );
   }, [points, search]);
 
-  // Ensure Leaflet (OSM) is loaded
+  // Prime geocodes for all points to speed up marker rendering - only after map is ready
   useEffect(() => {
-    const ensureLeaflet = async () => {
-      if ((window as any).L) return;
-      const css = document.createElement('link');
-      css.rel = 'stylesheet';
-      css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(css);
-      await new Promise<void>((res, rej) => {
-        const s = document.createElement('script');
-        s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        s.onload = () => res();
-        s.onerror = rej;
-        document.body.appendChild(s);
-      });
-    };
-    ensureLeaflet().then(() => setIsMapReady(true)).catch(() => setIsMapReady(false));
-  }, []);
-
-  // Prime geocodes for all points to speed up marker rendering
-  useEffect(() => {
-    if (points.length > 0) {
+    if (isReady && points.length > 0) {
       primeGeocodes(points.map(p => p.address)).catch(() => {});
+      // Center map on first point
+      geocodeAddress(points[0].address).then((coords) => {
+        if (coords) {
+          setMapCenter(coords);
+        }
+      });
     }
-  }, [points]);
+  }, [points, isReady]);
 
-  // Init map
+  // Load Yandex Maps API v3 and initialize React components
   useEffect(() => {
-    if (!isMapReady || !mapRef.current || mapInstance.current) return;
+    // Prevent duplicate loading
+    if ((window as any).__YMAP_LOADING__) {
+      console.log('[Map] Already loading, skipping...');
+      return;
+    }
 
     const initMap = async () => {
-      // Initialize Leaflet with OSM tiles
-      const L = (window as any).L;
-      if (!L) return;
-      const map = L.map(mapRef.current!, {
-        center: [55.751244, 37.618423],
-        zoom: 11,
-        zoomControl: true,
-      });
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
-      mapInstance.current = map;
+      try {
+        console.log('[Map] Waiting for ymaps3.ready...');
+        // Wait for ymaps3 to be ready
+        await (window as any).ymaps3.ready;
+
+        console.log('[Map] Importing @yandex/ymaps3-reactify...');
+        // Import reactify module
+        const ymaps3React = await (window as any).ymaps3.import('@yandex/ymaps3-reactify');
+        const reactify = ymaps3React.reactify.bindTo(React, ReactDOM);
+
+        console.log('[Map] Getting core map components...');
+        // Get core map components
+        const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer, YMapMarker } = reactify.module((window as any).ymaps3);
+
+        console.log('[Map] All components loaded successfully');
+        setYMapComponents({
+          YMap,
+          YMapDefaultSchemeLayer,
+          YMapDefaultFeaturesLayer,
+          YMapMarker
+        });
+        setIsReady(true);
+        (window as any).__YMAP_LOADING__ = false;
+      } catch (error) {
+        console.error('[Map] Initialization error:', error);
+        setIsReady(false);
+        (window as any).__YMAP_LOADING__ = false;
+      }
     };
 
-    initMap().catch(console.error);
-  }, [isMapReady]);
+    // Check if ymaps3 is already loaded
+    if ((window as any).ymaps3) {
+      console.log('[Map] ymaps3 already loaded');
+      initMap();
+    } else {
+      // Mark as loading
+      (window as any).__YMAP_LOADING__ = true;
 
-  // Geocode helper with sessionStorage cache using OSM Nominatim.
+      // Load script with API key (without modules parameter)
+      const script = document.createElement('script');
+      script.src = 'https://api-maps.yandex.ru/v3/?apikey=b3dc0c6c-cacb-45ad-a186-4a7cd94e6d28&lang=ru_RU';
+      script.async = true;
+      console.log('[Map] Loading v3 API...');
+      script.onload = () => {
+        console.log('[Map] v3 API loaded successfully');
+        initMap();
+      };
+      script.onerror = (error) => {
+        console.error('[Map] Failed to load v3 API:', error);
+        (window as any).__YMAP_LOADING__ = false;
+        setIsReady(false);
+      };
+      document.head.appendChild(script);
+    }
+  }, []);
+
   const geocode = async (addr: string): Promise<[number, number] | null> => {
     return (getCachedCoords(addr) ?? await geocodeAddress(addr)) as any;
-  };
-
-  // Place markers for points
-  useEffect(() => {
-    if (!isMapReady || !mapInstance.current) return;
-
-    const updateMarkers = async () => {
-      const L = (window as any).L;
-      if (!L) return;
-      // Clear previous markers
-      markersRef.current.forEach((m) => m.remove());
-      markersRef.current.clear();
-      coordsRef.current.clear();
-
-      if (visiblePoints.length === 0) return;
-
-      const bounds = L.latLngBounds([]);
-      for (const p of visiblePoints) {
-        const lonlat = await geocode(p.address);
-        if (!lonlat) continue;
-        const latlng: [number, number] = [lonlat[1], lonlat[0]];
-        // Default Leaflet marker
-        const marker = L.marker(latlng, { title: p.name }).addTo(mapInstance.current).bindTooltip(p.name);
-        // Draw a small circle to ensure visibility even if default icon doesn't load
-        L.circleMarker(latlng, {
-          radius: 6,
-          color: '#12993B',
-          weight: 2,
-          fillColor: '#12993B',
-          fillOpacity: 0.9
-        }).addTo(mapInstance.current);
-        if (highlightedIds.includes(p.id)) {
-          try { marker.setZIndexOffset(1000); } catch {}
-        }
-        marker.on('click', () => {
-          setActiveId(p.id);
-          const el = document.getElementById(`bpp-map-item-${p.id}`);
-          if (el && listRef.current) el.scrollIntoView({ block: 'nearest' });
-        });
-        markersRef.current.set(p.id, marker);
-        coordsRef.current.set(p.id, lonlat);
-        bounds.extend(latlng as any);
-      }
-      if (bounds.isValid()) {
-        mapInstance.current.fitBounds(bounds.pad(0.1));
-      }
-    };
-
-    updateMarkers();
-    return () => { 
-      markersRef.current.clear();
-      coordsRef.current.clear();
-    };
-  }, [visiblePoints, isMapReady]);
-
-  // Center on active from list click
-  const focusPoint = async (p: Point) => {
-    setActiveId(p.id);
-    const map = mapInstance.current;
-    if (!map) return;
-
-    // Try to get cached coordinates first
-    const cached = coordsRef.current.get(p.id) || await geocode(p.address);
-    if (!cached) return;
-
-    // Ensure marker exists in Leaflet
-    const L = (window as any).L;
-    if (L && !markersRef.current.get(p.id)) {
-      const latlng: [number, number] = [cached[1], cached[0]];
-      const marker = L.marker(latlng, { title: p.name }).addTo(map);
-      try { marker.setZIndexOffset(1000); } catch {}
-      marker.bindTooltip(p.name);
-      markersRef.current.set(p.id, marker);
-      coordsRef.current.set(p.id, cached);
-    }
-    map.setView([cached[1], cached[0]], 15);
-  };
-
-  // Geolocation
-  const locateMe = () => {
-    if (!navigator.geolocation || !mapInstance.current) return;
-    navigator.geolocation.getCurrentPosition((pos) => {
-      mapInstance.current.setView([pos.coords.latitude, pos.coords.longitude], 14);
-    });
   };
 
   const connectedText = (id: string) => {
     if (!getConnectedCount) return '';
     const c = getConnectedCount(id);
-    if (c === 'all') return 'Подключена ко всем складам';
-    return `Подключена к ${c} складам`;
+    if (c === 'all') return 'Все склады';
+    if (typeof c === 'number') {
+      return `${c} склад${c === 1 ? '' : c <= 4 ? 'а' : 'ов'}`;
+    }
+    return '';
   };
+
+  const handleMarkerClick = useCallback((p: Point) => {
+    setActiveId(p.id);
+    const el = document.getElementById(`bpp-map-item-${p.id}`);
+    if (el && listRef.current) {
+      el.scrollIntoView({ block: 'nearest' });
+    }
+  }, []);
+
+  const focusPoint = async (p: Point) => {
+    setActiveId(p.id);
+  };
+
+  if (!isReady || !YMapComponents) {
+    return (
+      <div className="bpp-map-wrapper">
+        <div className="bpp-map-list" ref={listRef}>
+          <div className="bpp-map-list__title">{points.length} точек самовывоза</div>
+        </div>
+        <div className="bpp-map-canvas">
+          <div style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#8C8A87'
+          }}>
+            Загрузка карты...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { YMap, YMapDefaultSchemeLayer, YMapDefaultFeaturesLayer, YMapMarker } = YMapComponents;
 
   return (
     <div className="bpp-map-wrapper">
       <div className="bpp-map-list" ref={listRef}>
-        {/* Search (only if > 10 точек) */}
-        {points.length > 10 && (
-          <div className="bpp-map-search" style={{ alignSelf: 'stretch' }}>
-            <input
-              className="bui-search__input"
-              placeholder="Поиск"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                height: 40,
-                padding: '10px 12px',
-                borderRadius: 12,
-                border: '1px solid rgba(49,34,12,0.16)'
-              }}
-            />
-          </div>
-        )}
+        {/* Search */}
+        <div style={{ alignSelf: 'stretch' }}>
+          <BuiSearchField
+            value={search}
+            onChange={setSearch}
+            placeholder="Поиск по названию или адресу"
+          />
+        </div>
+        {/* Divider */}
+        <div className="bpp-map-divider" style={{ margin: '4px -20px' }} />
         {/* Title */}
         <div className="bpp-map-list__title" style={{ alignSelf: 'stretch' }}>{visiblePoints.length} точек самовывоза</div>
         {visiblePoints.map((p, idx) => (
@@ -219,29 +194,141 @@ export const BusinessPickupMap: React.FC<BusinessPickupMapProps> = ({ points, ge
           </React.Fragment>
         ))}
       </div>
-      
+
       <div className="bpp-map-canvas">
-        {!isMapReady && (
-          <div style={{ 
-            width: '100%', 
-            height: '100%', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center',
-            color: '#8C8A87'
-          }}>
-            Загрузка карты...
-          </div>
-        )}
-        <div ref={mapRef} className="bpp-map-viewport" style={{ display: isMapReady ? 'block' : 'none' }} />
-        {isMapReady && (
-          <button className="map-locate-button" onClick={locateMe} aria-label="Найти мое местоположение">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M8 2.667a.667.667 0 0 1 .667.667v.708A4.666 4.666 0 0 1 11.958 7.333h.708a.667.667 0 1 1 0 1.334h-.708A4.666 4.666 0 0 1 8.667 11.958v.708a.667.667 0 1 1-1.334 0v-.708A4.666 4.666 0 0 1 4.042 8.667h-.708a.667.667 0 1 1 0-1.334h.708A4.666 4.666 0 0 1 7.333 4.042v-.708A.667.667 0 0 1 8 2.667Zm0 2.666A2.667 2.667 0 1 0 10.667 8 2.667 2.667 0 0 0 8 5.333Z" fill="#191817"/>
-            </svg>
-          </button>
-        )}
+        <div ref={mapContainerRef} className="bpp-map-viewport" style={{ width: '100%', height: '100%' }}>
+          <YMap
+            location={{ center: mapCenter, zoom: 14 }}
+            mode="vector"
+          >
+            <YMapDefaultSchemeLayer />
+            <YMapDefaultFeaturesLayer />
+
+            {visiblePoints.map((p) => (
+              <PickupMarker
+                key={p.id}
+                point={p}
+                YMapMarker={YMapMarker}
+                geocode={geocode}
+                connectedText={connectedText}
+                onClick={handleMarkerClick}
+                isActive={activeId === p.id}
+              />
+            ))}
+          </YMap>
+        </div>
       </div>
     </div>
+  );
+};
+
+// Separate marker component
+const PickupMarker: React.FC<{
+  point: Point;
+  YMapMarker: any;
+  geocode: (addr: string) => Promise<[number, number] | null>;
+  connectedText: (id: string) => string;
+  onClick: (p: Point) => void;
+  isActive: boolean;
+}> = ({ point, YMapMarker, geocode, connectedText, onClick }) => {
+  const [coords, setCoords] = useState<[number, number] | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    geocode(point.address)
+      .then((result) => {
+        if (mounted) {
+          setCoords(result);
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error(`[Marker] Geocoding failed for ${point.address}:`, error);
+        if (mounted) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [point.address, geocode]);
+
+  if (loading || !coords) return null;
+
+  return (
+    <YMapMarker coordinates={coords} draggable={false} onClick={() => onClick(point)}>
+      <div style={{
+        position: 'relative',
+        transform: 'translate(-50%, -100%)'
+      }}>
+        {/* Pin marker */}
+        <svg width="32" height="40" viewBox="0 0 32 40" style={{ display: 'block' }}>
+          <path
+            d="M16 0C7.163 0 0 7.163 0 16c0 8.837 16 24 16 24s16-15.163 16-24C32 7.163 24.837 0 16 0z"
+            fill="#E63946"
+            stroke="#ffffff"
+            strokeWidth="2"
+          />
+          <circle cx="16" cy="16" r="6" fill="#ffffff" />
+        </svg>
+
+        {/* Balloon popup always visible above the marker */}
+        <div style={{
+          position: 'absolute',
+          bottom: '45px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#ffffff',
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          padding: '16px',
+          minWidth: '220px',
+          maxWidth: '300px',
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+          pointerEvents: 'auto'
+        }}>
+          {/* Arrow */}
+          <div style={{
+            position: 'absolute',
+            bottom: '-8px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 0,
+            height: 0,
+            borderLeft: '8px solid transparent',
+            borderRight: '8px solid transparent',
+            borderTop: '8px solid #ffffff'
+          }} />
+
+          <div style={{
+            fontWeight: 600,
+            fontSize: '15px',
+            marginBottom: '10px',
+            color: '#31220C',
+            lineHeight: 1.4
+          }}>
+            {point.name}
+          </div>
+          <div style={{
+            fontSize: '13px',
+            color: '#8C8A87',
+            marginBottom: '10px',
+            lineHeight: 1.4
+          }}>
+            {point.address}
+          </div>
+          <div style={{
+            fontSize: '13px',
+            color: '#31220C',
+            paddingTop: '8px',
+            borderTop: '1px solid #F5F3F0'
+          }}>
+            <span style={{ color: '#8C8A87' }}>Подключена к:</span> {connectedText(point.id)}
+          </div>
+        </div>
+      </div>
+    </YMapMarker>
   );
 };
